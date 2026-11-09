@@ -786,3 +786,19 @@ WSL 路径（`build-opd2515.cmd -Stage kernel`）仍是内核构建入口；本�
 - 变基后重新完整构建通过，payload 内容回读校验通过：单一 `[[driver]]`、DarwinBoot 与构建产物一致、trust cache 为单模块 v2/2,759 条、kernel 与 ADT 保留、boot 头及 kernel/ramdisk 段逐字节匹配。
 - 变基后最新主机产物：`UniXNU.efi` 102,400 B，SHA-256 `BD781B444EFBB55254622E3C47A113E2C066EC72993D5E5DF842F88A6F7CD4CF`；payload 218,103,808 B，SHA-256 `567330FF26814DDFFF14DB4812E11C9D3C7AE686C22A1FE3CD5A6E34744FE588`；boot image 218,210,304 B，SHA-256 `902C6D3FC978E6468A8C0A136A7C09FF24C22799E4E5C7E54347C0AA17AC3C2D`。DarwinBoot 与 trust cache 哈希不变。
 - S8 实机证据来自变基前的同一修复版本；变基后的最新 EFI/boot image 已通过主机构建和结构校验，但尚未再次实机启动。后续设备测试仍只允许 `fastboot boot`。
+
+## 19. 独立设备仓库与旧 fork 清理（2026-11-09）
+
+### 19.1 公开独立仓
+
+- 本仓库以 `Axiang-dev/UniXNU-opd2515` 发布，默认分支为 `main`。初始提交 `175fd0a9dfeb6aca606d2e9e20232966e89b584e` 的远端回读一致。
+- GitHub 描述为 `UniXNU board port for the OPPO Pad mini (OPD2515, SM8845P / Alor)`，包含 `unixnu` topic，被识别为 Python 仓库。
+- 初始推送触发并通过 `Verify repository`（run 42585943269）与 `Porting record`（run 42585943530）；`Package preflight` 是手动工作流。
+- 本地 `scripts/verify.py`、13 区域 `porting.toml` 校验及上游 `8ec13bb1077502e53e8ba3b82c56842589b5c837` 上的补丁应用检查均通过。
+- 没有提交平台 seed、Apple IPSW、内核、payload、boot image、厂商固件、token 或本机日志。
+
+### 19.2 旧 fork 删除
+
+- 用户明确确认删除先前的 `Axiang-dev/UniXNU` fork。删除前在 GitHub 页面核对仓库名，并在最终验证框输入 `Axiang-dev/UniXNU`。
+- GitHub 返回删除成功；随后 API 回查旧地址为 HTTP 404。新仓 `Axiang-dev/UniXNU-opd2515` 保持公开并可访问。
+- 本地旧的失效 remote 已移除；所用源码提交由 `patches/unixnu/` 固定并可直接应用到上述 UniXNU 上游提交。
