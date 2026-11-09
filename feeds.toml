@@ -1,0 +1,7 @@
+# The SM8845 common repository is local during bring-up; local.toml points
+# unixnu at work/UniXNU-sm8845-common without requiring a published remote.
+[[source]]
+name = "sm8845"
+kind = "soc"
+git = "https://github.com/UniXNU/UniXNU-sm8845-common"
+commit = "8d9573f61d7d35af24a1918c7ce44efad29fabb8"

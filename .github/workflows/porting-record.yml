@@ -1,0 +1,31 @@
+name: Porting record
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the device repository
+        uses: actions/checkout@v4
+        with:
+          path: device
+      - name: Check out the pinned UniXNU source
+        uses: actions/checkout@v4
+        with:
+          repository: UniXNU/UniXNU
+          ref: 8ec13bb1077502e53e8ba3b82c56842589b5c837
+          path: unixnu
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate the device record
+        run: python3 unixnu/scripts/porting-record.py check --device device
+      - name: Validate the OPD2515 source patch
+        run: git -C unixnu apply --check ../device/patches/unixnu/0001-feat-opd2515-advance-firmware-boot-to-XNU-handoff.patch

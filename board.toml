@@ -1,0 +1,101 @@
+# UniXNU board description for the OPPO Pad mini (OPD2515).
+#
+# The current recovery is a donor TWRP from OnePlus 15R with a corrected touch
+# driver. Its reported product/device names are recovery-build identity only;
+# the hardware facts below come from the live OPD2515 device tree and sysfs:
+# SM8845P / ALORP, soc_id 727, qcom,alor-mtp, and a 1680x2520 panel.
+#
+# This target currently uses the GBL/BDS EFI environment already installed on
+# the tablet. It does not require a second full UEFI port. Images are exercised
+# with fastboot boot only; no boot, abl, efisp, xbl, persist, BDS or recovery
+# partition is written. The sole persistent write is the explicitly authorized
+# 4 MiB UniXNU diagnostic window at the tail of userdata. That window can damage
+# the Android filesystem and must be documented before every device test.
+
+schema_version = 2
+
+[board]
+name = "opd2515"
+soc = "SM8845"
+soc_source = "sm8845"
+os_profile = "ios-16.5-20F66"
+description = "OPPO Pad mini 5G (OPD2515, SM8845P / Alor)"
+kit = "opd2515"
+
+[components]
+include = [
+  "ArmDTPlatform",
+  "ArmCpu",
+  "SoftwareAES",
+  "XnuPrelink",
+  "DarwinBoot",
+]
+
+[kernel]
+defconfig = "opd2515_defconfig"
+# The shared ARM64 recipes provide the generic platform expert, CPU, software
+# AES and pthread support needed by the first XNU entry probe. The mockfs test
+# fixture is intentionally absent until the filesystem layer is brought up.
+archives = [
+  "build-corecrypto-14.py",
+  "build-corecrypto-14.py --namespace",
+  "component:ArmDTPlatform",
+  "component:ArmCpu",
+  "component:SoftwareAES",
+  "build-software-aes-bindings.py",
+  "build-libpthread-kernel.py",
+]
+config_fragments = ["arch:configs/common.config", "soc:configs/sm8845.config", "os:configs/ios.config"]
+# The iOS 16.5 XNU 8796 rebase is version-specific. Applying the shared series
+# for the current XNU train would fail before the kernel build starts.
+patch_series = ["device:patches/xnu/series"]
+
+[bootimg.image]
+# Match the boot header accepted by the GBL/BDS fastboot path on this tablet
+# and measured in the already-verified OPD2515 UI image.
+base = 0x10000000
+kernel_offset = 0x8000
+tags_offset = 0x100
+pagesize = 4096
+header_version = 0
+
+# GBL/BDS receives this node in the boot-image DTB. The live OPD2515 device tree
+# measured label cont_splash_region at 0xFC800000+0x2B00000.
+[[bootimg.dtb_node]]
+path = "/reserved-memory/splash_region"
+props = [
+  { name = "label", type = "s", value = "cont_splash_region" },
+  { name = "reg", type = "x", value = ["0x0", "0xfc800000", "0x0", "0x2b00000"] },
+]
+
+[payload]
+volume = "OPD2515"
+size_mib = 208
+loader = "firmware"
+title = "OPPO Pad mini - Darwin XNU"
+# The first bring-up owns a contiguous 6 GiB window. It was checked against all
+# 57 fixed reserved-memory nodes in the live OPD2515 FDT: no overlap.
+dram_size = "0x180000000"
+panic_screen = true
+tools = true
+timeout = 3
+kernel_args = ["-v", "serial=3"]
+
+[payload.adt]
+chip_id = "727"
+owned_memory_size = "0x180000000"
+cpu_regs = "0"
+psci_method = "smc"
+packed_data_ramdisk = true
+ipad_identity = false
+unique_chip_id = "required"
+
+[device_tree]
+source = "device:dts/opd2515.dts"
+include_dirs = ["soc:dts"]
+
+[package]
+unixnu = "../UniXNU"
+
+[package.defconfig]
+"ios-16.5-20F66" = "opd2515_defconfig"

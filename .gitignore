@@ -1,0 +1,11 @@
+/local.toml
+/build/
+/out/
+/artifacts/
+__pycache__/
+*.pyc
+.DS_Store
+*.bin
+*.img
+*.efi
+*.log

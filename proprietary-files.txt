@@ -1,0 +1,6 @@
+# No proprietary boot firmware is distributed by this repository.
+#
+# The OPD2515 port runs inside the stock GBL/BDS environment installed on the
+# tablet. Apple IPSW members, the extracted kernel, ADT inputs, trust cache and
+# platform seed are local build inputs and must come from their lawful source.
+# Stock BDS, ABL, XBL, OrangeFox and vendor firmware are prerequisites only.

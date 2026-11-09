@@ -1,0 +1,32 @@
+# OPD2515 first-entry XNU configuration.
+#
+# Configuration fragments apply in this order, then this file:
+#   arch:configs/common.config
+#   soc:configs/sm8845.config
+#   os:configs/ios.config
+
+# Kernel link inputs selected by [kernel] archives.
+CONFIG_XNU_BUILD_ARCHIVES=y
+CONFIG_XNU_SOURCE_CORECRYPTO14=y
+CONFIG_XNU_SOURCE_PTHREAD=y
+CONFIG_XNU_ARM_DT_PLATFORM=y
+CONFIG_XNU_ARMCPU=y
+CONFIG_XNU_NATIVE_AES=y
+CONFIG_XNU_NATIVE_ARCH_TIMER=y
+CONFIG_XNU_NATIVE_PAN=y
+CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
+
+# Entry diagnostics and trust-cache support inherited from the iOS profile.
+CONFIG_XNU_DT_PANIC_REGION=y
+CONFIG_XNU_TRUST_CACHE_RUNTIME=y
+CONFIG_XNU_NATIVE_CS_HASH_CACHE=y
+
+# Storage and display are brought up after the DARWINBOOT / XNU-entry probe.
+# CONFIG_XNU_NATIVE_UFS is not set
+# CONFIG_XNU_NATIVE_VIRTIO_BLOCK is not set
+# CONFIG_XNU_NATIVE_LEGACY_DISPLAY is not set
+# CONFIG_XNU_NATIVE_MOBILE_DISPLAY is not set
+# CONFIG_XNU_NATIVE_ADRENO is not set
+# CONFIG_XNU_NATIVE_RAM_BLOCK is not set
+# CONFIG_XNU_ARMVIRT_PLATFORM is not set
+# CONFIG_XNU_SHENG_PMGR is not set

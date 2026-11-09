@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// OPPO Pad mini (OPD2515), Qualcomm SM8845P "Alor".
+//
+// Hardware identity was read from the live device tree; recovery software
+// labels (OnePlus 15R / fox_macan / 42d72758) are donor TWRP metadata and are
+// deliberately absent here.
+//
+// The included DTSI supplies the eight MPIDR affinities, PSCI, GICv3 and the
+// 19.2 MHz system/generic timers. Board memory is the 6 GiB RAM handoff window
+// requested by board.toml, not the full physical memory map.
+
+/dts-v1/;
+/include/ "sm8845.dtsi"
+
+/ {
+    model = "OPPO Pad mini (OPD2515)";
+    compatible = "oppo,opd2515", "qcom,alor-mtp", "qcom,alor", "qcom,mtp", "qcom,alorp-mtp", "qcom,alorp";
+
+    // 0x980000000 + 0x180000000 = 0xB00000000.
+    // All 57 fixed reserved-memory nodes in the live FDT were checked against
+    // this window and none overlaps it.
+    memory@980000000 {
+        device_type = "memory";
+        reg = <0x9 0x80000000 0x1 0x80000000>;
+    };
+
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        // label=cont_splash_region, measured on OPD2515.
+        splash_region: framebuffer@fc800000 {
+            label = "cont_splash_region";
+            reg = <0 0xfc800000 0 0x2b00000>;
+            no-map;
+        };
+    };
+};

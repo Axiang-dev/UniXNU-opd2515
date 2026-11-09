@@ -1,0 +1,22 @@
+# Menu and entry definitions for the payload FAT volume.
+version = 1
+
+[boot]
+timeout = 3
+default = "xnu"
+
+[[driver]]
+path = "Drivers/DarwinBoot.efi"
+connect = false
+
+[[entry]]
+id = "xnu"
+title = "OPPO Pad mini (OPD2515) - Darwin XNU"
+type = "xnu"
+path = "Payloads/kernel.macho"
+
+[[entry]]
+id = "exit"
+title = "Return to firmware"
+type = "action"
+action = "exit"

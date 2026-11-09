@@ -1,0 +1,29 @@
+OPD2515 S8 host validation summary
+=================================
+
+Source commit
+-------------
+UniXNU branch opd2515-oppopadmini-ui
+de8962a9bcf838bfc16b8571f43449663d094194
+based on upstream main 8ec13bb1077502e53e8ba3b82c56842589b5c837
+
+Checks completed
+----------------
+- Host build completed after the rebase.
+- Payload readback contained one DarwinBoot driver entry.
+- DarwinBoot in the payload matched the built artifact.
+- Trust cache contained one v2 module and 2,759 entries.
+- kernel.macho and ADT were present in the payload.
+- Android boot header and kernel/ramdisk segments matched the expected inputs.
+- The latest image was not booted on hardware after the rebase.
+
+Artifact hashes
+---------------
+BD781B444EFBB55254622E3C47A113E2C066EC72993D5E5DF842F88A6F7CD4CF  UniXNU.efi (102400 bytes)
+952B7636124D5454BABCBAFE6000D15E29A8588C1A2DA2D444E77BBEC73E5FDF  DarwinBoot.efi (27136 bytes)
+567330FF26814DDFFF14DB4812E11C9D3C7AE686C22A1FE3CD5A6E34744FE588  payload (218103808 bytes)
+902C6D3FC978E6468A8C0A136A7C09FF24C22799E4E5C7E54347C0AA17AC3C2D  boot image (218210304 bytes)
+
+Latest confirmed device evidence
+--------------------------------
+6112BC4C613F03CAA12EB4753E3358AB07240BB914260431CFA2C6C1AA992001  S8 pre-rebase boot image

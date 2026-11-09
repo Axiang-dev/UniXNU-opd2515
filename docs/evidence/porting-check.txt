@@ -1,0 +1,14 @@
+Porting-record validation
+=========================
+
+Command:
+  python3 ../UniXNU/scripts/porting-record.py check --device .
+
+Result:
+  opd2515: 13 structured areas checked
+
+The checked UniXNU source is the OPD2515 branch at:
+  de8962a9bcf838bfc16b8571f43449663d094194
+
+This validates record identity and schema. It does not upgrade hardware
+completion status.

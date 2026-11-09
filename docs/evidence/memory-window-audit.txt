@@ -1,0 +1,21 @@
+OPD2515 memory-window audit
+===========================
+
+Selected bring-up window:
+  0x00000009_80000000 - 0x0000000B_00000000
+  size 0x00000001_80000000 (6 GiB)
+
+Source of identity:
+  live OPD2515 FDT and sysfs
+  model family qcom,alor-mtp / qcom,alorp-mtp
+  soc_id 727
+
+Audit:
+  The supplied live FDT contained 57 fixed reserved-memory nodes.
+  Each node was compared against the selected 6 GiB window.
+  No node overlapped the window.
+
+Limits:
+  This validates only the handoff window used by the current entry probe.
+  It does not validate physical memory beyond that window for a future XNU
+  platform expert or root-device implementation.

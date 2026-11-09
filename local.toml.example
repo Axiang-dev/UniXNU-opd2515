@@ -1,0 +1,5 @@
+# Copy to local.toml (ignored by Git) only when the local UniXNU checkout uses
+# out-of-tree shared drivers or kits.
+[local]
+drivers = "../drivers"
+kits = "../kits"
