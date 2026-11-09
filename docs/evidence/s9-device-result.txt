@@ -1,0 +1,42 @@
+OPD2515 S9 preliminary device result
+===================================
+
+Date: 2026-11-09 CST
+Boot image SHA-256:
+FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A
+
+Command and transport
+---------------------
+fastboot devices: 0000000000000000 fastboot
+fastboot boot <S9 boot image>:
+  Sending OKAY [4.487 seconds]
+  Booting OKAY [0.000 seconds]
+
+Observed device behavior
+------------------------
+- The screen showed green, blue and magenta bands after DarwinBoot handoff.
+- The displayed kernel entry data reported EL1h, 4 KiB granule support and the
+  expected framebuffer geometry.
+- The user observed the diagnostic screen for several seconds, then a black
+  screen and an automatic reboot into Android.
+- The evidence photo is s9-entry-bands-reboot.jpg (2617858 bytes), SHA-256
+  057124BDAA26F855673A486E2E763221C093A8A4D69F956B2CA687ED7ACE1701.
+
+Physical-device identity after reboot
+-------------------------------------
+adb serial: 42d72758
+product: OPD2515
+model: OPD2515
+ro.boot.bootreason: reboot,
+sys.boot.reason: reboot,
+
+Interpretation
+--------------
+The three entry checkpoints and a later hard reset are directly observed. This
+is preliminary evidence that execution survived long enough to reach the S9
+configured post-MMU reset. The user did not provide a stopwatch or video timing:
+"several seconds" is insufficient to prove the configured six-second interval
+or to rule out an earlier platform reset. Stage 3 therefore remains preliminary
+until an unchanged repeat records the magenta-to-reset interval.
+
+No flash, erase or format operation was used.

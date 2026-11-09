@@ -25,6 +25,8 @@ EXPECTED_PHOTOS = {
         "46e73d13ecf40f43bc1f5c66bc07ba782a033cbde95d881ada08176b033384d4",
     "docs/evidence/s8-post-handoff-unixnu-menu.jpg":
         "5ecb83bc4c14871a30a10193c927f10a2e5d41498a98e448531d1113ed2146b4",
+    "docs/evidence/s9-entry-bands-reboot.jpg":
+        "057124bdaa26f855673a486e2e763221c093a8a4d69f956b2ca687ed7ace1701",
 }
 
 

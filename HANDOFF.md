@@ -835,5 +835,24 @@ WSL 路径（`build-opd2515.cmd -Stage kernel`）仍是内核构建入口；本�
 - 从 BDS 以 `fastboot boot` 启动 S9 后，仍应看到绿、蓝、品红三条。
 - 三色后约 6 秒发生复位，才证明 MMU 开启指令已执行并到达 stage 3。
 - 提前复位不能证明到达 stage 3；超过 6 秒不复位则说明 CPU 没有到达 stage 3。
-- 当前尚未执行 S9 实机启动，未观察到上述时序前，不宣称 MMU 初始化、内核 C 路径、
-  存储、根卷或 iOS 用户态已通过。全程仍禁止 flash、erase 或 format。
+- 本节主机准备完成时尚未执行 S9 实机启动；后续 S9.1 实机初验见下。观察到完整时序前，
+  不宣称 MMU 初始化、内核 C 路径、存储、根卷或 iOS 用户态已通过。全程仍禁止 flash、
+  erase 或 format。
+
+### 20.3 实机初验：三色后数秒硬复位
+
+- 2026-11-09 从 BDS 序列号 `0000000000000000` 对 SHA-256
+  `FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A` 的 S9 镜像
+  执行 `fastboot boot`，返回 `Sending OKAY [4.487 s]`、`Booting OKAY [0.000 s]`。
+- 实机照片再次显示绿色、蓝色、品红色三条，以及 UniXNU 菜单、DarwinBoot handoff 和入口
+  寄存器。照片已保存为 `docs/evidence/s9-entry-bands-reboot.jpg`，2,617,858 B，SHA-256
+  `057124BDAA26F855673A486E2E763221C093A8A4D69F956B2CA687ED7ACE1701`。
+- 用户报告该画面维持数秒后黑屏并自动重启进入 Android。重启后 adb 枚举到
+  `42d72758 device product:OPD2515 model:OPD2515`；只读属性为
+  `ro.boot.bootreason=reboot,`、`sys.boot.reason=reboot,`，确认发生了硬复位。
+- 这使 S9 从“纯主机准备”升级为“实机初验”：MMU 后配置的复位有可见结果，且不是无响应
+  卡死。但用户没有提供秒表或视频时间轴，“数秒”不足以证明精确的 6 秒；因此当前不把
+  stage 3 写成最终通过，也不升级 MMU 完成为已证明。
+- 下一轮保持 S9 镜像和配置不变，录像或秒表记录品红到黑屏/复位的秒数。约 6 秒后才将
+  S9 标为最终通过；随后按官方文档增加 stage 4，测试 `_arm_init` 中
+  `_arm_vm_init` 调用返回。全程仍只用 `fastboot boot`，没有 flash、erase 或 format。

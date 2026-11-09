@@ -19,7 +19,7 @@
 | S7 trust cache | ✅ | 原始 IM4P 被 DarwinBoot 判为 `Compromised Data`；转 v2 bundle 后通过 |
 | S8 DarwinBoot handoff | ✅ 实机 | `inputs validated; exiting boot services`、`hand-off to the kernel` |
 | S8 XNU 入口探针 | ✅ 实机 | 绿色、蓝色、品红色三条依次出现；品红表示已到 MMU 打开前 |
-| S9 MMU 后定时复位探针 | 🟡 主机已准备 | 只新增 stage 3，实机需确认三色后约 6 秒复位 |
+| S9 MMU 后定时复位探针 | 🟡 实机初验 | 三色后用户观察数秒硬复位；精确 6 秒时序待复核 |
 | MMU 后内核 | ⛔ 未证明 | 没有 CSV/串口/panic 屏幕或后续日志证据 |
 | 存储 / 根卷 / 用户态 | ⛔ 未开始 | 当前 defconfig 明确关闭 UFS、显示和 GPU |
 
@@ -93,7 +93,7 @@
 上述最新产物尚未再次实机启动。S8 实机照片来自变基前
 `6112BC4C613F03CAA12EB4753E3358AB07240BB914260431CFA2C6C1AA992001`。
 
-## S9：MMU 后定时复位检查（主机已准备，实机待验收）
+## S9：MMU 后定时复位检查
 
 - 依据 UniXNU 官方 `docs/guide/debugging.md`，品红条只证明 CPU 到达打开 MMU 之前。
   S9 只增加 `entry_probe_reset_delay = 6`：MMU 开启后等待 6 秒，再以 PSCI
@@ -117,5 +117,20 @@
   boot image 头、EFI 段和 payload 段均通过主机回读。
 - 详细主机证据见 [`docs/evidence/s9-host-validation.txt`](docs/evidence/s9-host-validation.txt)。
 - 实机验收标准：三色后约 6 秒复位才证明到达 stage 3；提前复位不能证明到达；超过 6 秒
-  不复位则说明 CPU 没有到达 stage 3。当前尚未执行 S9 实机启动，不能把主机结果写成
-  MMU 或内核 C 路径已通过。
+  不复位则说明 CPU 没有到达 stage 3。本节记录的是 S9.1 实机初验之前的主机准备结果，
+  不能把主机结果写成 MMU 或内核 C 路径已通过。
+
+### S9.1 实机初验
+
+- 2026-11-09 使用 SHA-256
+  `FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A` 的 S9
+  boot image 从 BDS 执行 `fastboot boot`，返回 `Sending OKAY [4.487 s]`、
+  `Booting OKAY [0.000 s]`。
+- 实机照片再次显示绿色、蓝色、品红色三条，以及 UniXNU 菜单、DarwinBoot handoff 文本和
+  内核入口寄存器。证据：[`s9-entry-bands-reboot.jpg`](docs/evidence/s9-entry-bands-reboot.jpg)，
+  SHA-256 `057124BDAA26F855673A486E2E763221C093A8A4D69F956B2CA687ED7ACE1701`。
+- 用户描述该画面维持数秒后黑屏并自动重启进入 Android。随后 adb 枚举到
+  `OPD2515`，`ro.boot.bootreason=reboot,`、`sys.boot.reason=reboot,`，确认发生了硬复位。
+- 本次没有独立秒表或视频时间轴，因此只能记为“三色后数秒发生复位”的初步通过，不能把
+  “约 6 秒”写成精确测量。下一轮保持镜像和配置不变，复跑并按秒表/视频记录品红到重启的
+  时间；落在约 6 秒窗口后再将 S9 标为最终通过。

@@ -23,8 +23,9 @@ Checks completed
 - S9 payload readback matched the host-built kernel byte for byte.
 - unixnu.toml, ADT, v2 trust cache and DarwinBoot match the S8 payload byte for byte.
 - The Android boot header, EFI segment and payload segment passed readback.
-- No S9 image was booted on hardware. MMU completion and kernel C-path progress
-  remain unproved until a device run shows the expected six-second reset timing.
+- At the time of this host validation, no S9 image had been booted on hardware.
+  The later preliminary device observation is recorded in s9-device-result.txt;
+  exact six-second timing and kernel C-path progress remain unproved.
 
 Artifact hashes
 ---------------

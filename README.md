@@ -10,8 +10,9 @@ OPPO Pad mini 5G（`opd2515` / OPD2515 / SM8845P “Alor”）的 UniXNU 独立�
 >
 > **尚未证明** XNU 已完成 MMU 初始化、进入内核 C 启动路径、进入存储/根卷阶段或启动 iOS。
 > 绿色、蓝色、品红色三条都出现后再次出现菜单的具体时序仍在确认。
-> S9 已加入官方 stage 3：MMU 开启后等待 6 秒再复位，用来证明 MMU 指令是否执行；
-> 镜像与主机回读已通过，但尚待实机按秒验收。
+> S9 已在实机再次出现绿色、蓝色、品红色，并在用户观察到数秒后黑屏、硬复位进入 Android。
+> 这给出了 MMU 后复位的初步证据；品红到复位的精确秒数仍需用秒表或视频复核，暂不把
+> “约 6 秒”写成精确实测值。
 
 > **注意：本项目主要由 AI 协助生成、实验和整理，代码与硬件结论都可能包含错误。**
 >
@@ -58,7 +59,7 @@ REC 自报 `fox_macan-eng`、`ro.product.device=macan`、`OnePlus_15R`，但系�
 | trust cache 校验 | ✅ | v2 bundle 后不再出现 `Compromised Data` |
 | DarwinBoot → XNU handoff | ✅ | `DARWINBOOT: hand-off to the kernel` |
 | XNU 入口检查点 | ✅ | 蓝色条与品红色条实机出现 |
-| S9 MMU 后计时探针 | 🟡 主机已准备 | 仅新增 stage 3，等待实机确认 6 秒复位时序 |
+| S9 MMU 后计时探针 | 🟡 实机初验 | 三色后用户观察数秒硬复位；精确 6 秒时序待复核 |
 | MMU 后启动 | ⛔ | 尚未验证 |
 | 存储 / 根卷 / 用户态 | ⛔ | 尚未开始 |
 
@@ -71,6 +72,7 @@ REC 自报 `fox_macan-eng`、`ro.product.device=macan`、`OnePlus_15R`，但系�
 |---|---:|---|
 | [`s8-darwinboot-xnu-handoff.jpg`](docs/evidence/s8-darwinboot-xnu-handoff.jpg) | 204,171 B | `46E73D13ECF40F43BC1F5C66BC07BA782A033CBDE95D881ADA08176B033384D4` |
 | [`s8-post-handoff-unixnu-menu.jpg`](docs/evidence/s8-post-handoff-unixnu-menu.jpg) | 200,189 B | `5ECB83BC4C14871A30A10193C927F10A2E5D41498A98E448531D1113ED2146B4` |
+| [`s9-entry-bands-reboot.jpg`](docs/evidence/s9-entry-bands-reboot.jpg) | 2,617,858 B | `057124BDAA26F855673A486E2E763221C093A8A4D69F956B2CA687ED7ACE1701` |
 
 最新主机产物：
 
@@ -78,12 +80,14 @@ REC 自报 `fox_macan-eng`、`ro.product.device=macan`、`OnePlus_15R`，但系�
 |---|---:|---|---|
 | S9 kernel | 55,570,432 B | `41CDEB9ED00A10F9D79663AECD5C690DB2CAF99E021B27DE6528E66B75057573` | 含 6 秒 stage 3；主机回读通过 |
 | S9 payload | 218,103,808 B | `FADA945E507E8EEB82C2917241B3E68B7760A12B9BC1718EB9C048EF0A558CC0` | 主机回读通过 |
-| S9 boot image | 218,210,304 B | `FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A` | 仅 `fastboot boot`，待实机 |
+| S9 boot image | 218,210,304 B | `FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A` | `fastboot boot` 实机初验通过；秒级时序待复核 |
 | `UniXNU.efi` | 102,400 B | `BD781B444EFBB55254622E3C47A113E2C066EC72993D5E5DF842F88A6F7CD4CF` | `fastboot boot` 已通过；S9 镜像内字节一致 |
 | `DarwinBoot.efi` | 27,136 B | `952B7636124D5454BABCBAFE6000D15E29A8588C1A2DA2D444E77BBEC73E5FDF` | 实机加载已通过；S9 镜像内字节一致 |
 
 主机回读明细见
 [`docs/evidence/s9-host-validation.txt`](docs/evidence/s9-host-validation.txt)。
+实机观察、设备身份与重启原因见
+[`docs/evidence/s9-device-result.txt`](docs/evidence/s9-device-result.txt)。
 
 S8 实机证据对应的变基前 boot image SHA-256 为
 `6112BC4C613F03CAA12EB4753E3358AB07240BB914260431CFA2C6C1AA992001`。
@@ -144,9 +148,10 @@ fastboot boot <已校验的 boot.img>
 ## 已知问题与下一步
 
 - 实机已到品红色检查点，但尚未看到 MMU 后内核输出或 panic 证据。
-- S9 镜像已加入 `entry_probe_reset_delay = 6`，但尚未实机启动。
-- 实机验收时，三色后约 6 秒复位才证明 MMU 开启指令执行；提前复位或超过 6 秒不复位
-  都不能据此宣称 MMU 初始化通过。
+- S9 实机再次出现三色，随后在用户观察到的数秒后硬复位进入 Android；重启原因属性为
+  `reboot,`。这是 MMU 后复位的初步证据。
+- 目前没有精确秒表值。下一步应复跑同一镜像并录像或计时；约 6 秒复位后才能把 stage 3
+  写成最终通过，提前复位或超过 6 秒不复位都不能据此宣称 MMU 初始化通过。
 - XNU 侧显示、实体键/触摸、UFS、GPU、网络、音频和电源均未完成。
 - S9 主机镜像不能替代实机计时结果，也不能据此宣称进入内核 C 路径。
 
