@@ -802,3 +802,38 @@ WSL 路径（`build-opd2515.cmd -Stage kernel`）仍是内核构建入口；本�
 - 用户明确确认删除先前的 `Axiang-dev/UniXNU` fork。删除前在 GitHub 页面核对仓库名，并在最终验证框输入 `Axiang-dev/UniXNU`。
 - GitHub 返回删除成功；随后 API 回查旧地址为 HTTP 404。新仓 `Axiang-dev/UniXNU-opd2515` 保持公开并可访问。
 - 本地旧的失效 remote 已移除；所用源码提交由 `patches/unixnu/` 固定并可直接应用到上述 UniXNU 上游提交。
+
+## 20. S9：MMU 开启后 6 秒复位检查（2026-11-09）
+
+### 20.1 主机准备
+
+- 依据 UniXNU 官方 `docs/guide/debugging.md`：品红条只证明 CPU 到达打开 MMU 之前；缺少
+  stage 3 时，三色后的菜单重现仍无法区分 MMU 前故障、MMU 后故障、panic 或固件复位。
+  S9 只增加 `entry_probe_reset_delay = 6`。
+- 发现 `scripts/patch-xnu-entry-probe.py` 的 panic screen 与 reset cave 空间冲突。工具现在
+  在同时启用两者时，把 reset cave 放进入口后的空填充
+  `0xFFFFFFF0073FA4A0`；蓝条、品红条、panic screen 地址和内容保持不变。修正提交为
+  `840fbdb4f7260dedcde53a10dc5c437ef28e30b8`。
+- 无 reset 回归构建与当前 S8 payload kernel 逐字节一致，SHA-256 均为
+  `E810A2E36F4113CABAF02028B9DD816E7D337CD538F40FC6D11DDA92C5FDBA38`。S9 kernel
+  相对 S8 只有 64 字节不同：等待与复位 cave，以及
+  `0xFFFFFFF0073FC350` 的跳转。
+- 反汇编确认先执行原 `mov x0, #0x300000`，再读 `CNTPCT_EL0` 等待 6 秒，最后调用
+  PSCI `SYSTEM_RESET`（function ID `0x84000009`）。
+- S9 kernel 为 55,570,432 B，SHA-256
+  `41CDEB9ED00A10F9D79663AECD5C690DB2CAF99E021B27DE6528E66B75057573`；payload 为
+  218,103,808 B，SHA-256
+  `FADA945E507E8EEB82C2917241B3E68B7760A12B9BC1718EB9C048EF0A558CC0`；boot image
+  为 218,210,304 B，SHA-256
+  `FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A`。
+- 回读确认 payload 内 kernel 与主机产物逐字节一致；`unixnu.toml`、ADT、v2 trust cache
+  和 DarwinBoot 相对 S8 payload 逐字节不变，boot image 头、EFI 段和 payload 段也通过。
+- 主机证据摘要见 [`docs/evidence/s9-host-validation.txt`](docs/evidence/s9-host-validation.txt)。
+
+### 20.2 实机验收标准
+
+- 从 BDS 以 `fastboot boot` 启动 S9 后，仍应看到绿、蓝、品红三条。
+- 三色后约 6 秒发生复位，才证明 MMU 开启指令已执行并到达 stage 3。
+- 提前复位不能证明到达 stage 3；超过 6 秒不复位则说明 CPU 没有到达 stage 3。
+- 当前尚未执行 S9 实机启动，未观察到上述时序前，不宣称 MMU 初始化、内核 C 路径、
+  存储、根卷或 iOS 用户态已通过。全程仍禁止 flash、erase 或 format。

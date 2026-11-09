@@ -1,38 +1,29 @@
-From de8962a9bcf838bfc16b8571f43449663d094194 Mon Sep 17 00:00:00 2001
-From: Codex <codex@local>
-Date: Mon, 9 Nov 2026 16:10:05 +0800
-Subject: [PATCH] feat(opd2515): advance firmware boot to XNU handoff
-
-Add the OPD2515 early screen checkpoints, persistent userdata-tail diagnostics, boot ramdisk recovery, and serial/status reporting used during bring-up.
-
-Retry a payload driver rejected by a vendor Security2 path policy from a private memory buffer while preserving the platform authentication call. Add the iOS 16.5 profile and retain both XNU compile records required by archive builders.
-
-Validated by the Windows EFI build and an on-device fastboot boot reaching DarwinBoot inputs-validated, ExitBootServices, kernel handoff, and XNU entry-probe stages 1 and 2.
----
- package/UniXNUPkg/Library/UniXNULib/Boot.c    |  18 +
- package/UniXNUPkg/Library/UniXNULib/BootLog.c | 267 ++++++++++
- .../UniXNUPkg/Library/UniXNULib/BootRamDisk.c | 471 ++++++++++++++++++
- package/UniXNUPkg/Library/UniXNULib/Inject.c  |  41 +-
- .../UniXNUPkg/Library/UniXNULib/Internal.h    |  58 +++
- package/UniXNUPkg/Library/UniXNULib/Main.c    |  88 +++-
- package/UniXNUPkg/Library/UniXNULib/Menu.c    |  16 +-
- .../UniXNUPkg/Library/UniXNULib/UniXNULib.inf |   2 +
- profiles/os/ios-16.5-20F66/README.md          |  12 +
- profiles/os/ios-16.5-20F66/configs/ios.config |  13 +
- profiles/os/ios-16.5-20F66/patches/xnu/series |  15 +
- profiles/os/ios-16.5-20F66/profile.toml       | 244 +++++++++
- scripts/build-xnu-4k-baseline.sh              |   6 +-
- scripts/linux/prepare-xnu.py                  |  23 +
- scripts/unixnu/devicetree.py                  |   4 +-
- scripts/unixnu/kernel.py                      |   9 +-
- 16 files changed, 1274 insertions(+), 13 deletions(-)
- create mode 100644 package/UniXNUPkg/Library/UniXNULib/BootLog.c
- create mode 100644 package/UniXNUPkg/Library/UniXNULib/BootRamDisk.c
- create mode 100644 profiles/os/ios-16.5-20F66/README.md
- create mode 100644 profiles/os/ios-16.5-20F66/configs/ios.config
- create mode 100644 profiles/os/ios-16.5-20F66/patches/xnu/series
- create mode 100644 profiles/os/ios-16.5-20F66/profile.toml
-
+diff --git a/docs/reference/boot-configuration.md b/docs/reference/boot-configuration.md
+index 947d9f0..3a2413d 100644
+--- a/docs/reference/boot-configuration.md
++++ b/docs/reference/boot-configuration.md
+@@ -53,7 +53,7 @@ console = "auto"
+ | `portrait_below` | 800 | With `auto`, portrait when width / height times 1000 is below this value |
+ | `console` | `auto` | `auto`, `graphics`, `text` or `none` |
+ 
+-The portrait layout is a column for a tall panel such as a phone. The logo floats at the top, the entries are numbered cards at the bottom, and the status lines wrap under a rule. The logo carries the UniXNU wordmark, so the title text appears only when `logo` is false or `title` is not `UniXNU`. With `auto`, a 1080x2400 panel (ratio 450) is portrait, a 3:4 tablet (750) is portrait, and a 4:5 panel (800) or any wider one keeps the landscape layout. Without a `scale` value, the portrait layout picks a glyph scale of width / 270, so a 1080 pixel wide panel shows about 33 characters per line.
++The portrait layout is a column for a tall panel such as a phone. The logo floats at the top, the entries are numbered cards at the bottom, and the status lines wrap under a rule. The logo carries the UniXNU wordmark, so the title text appears only when `logo` is false or `title` is not `UniXNU`. With `auto`, a 1080x2400 panel (ratio 450) is portrait, a 3:4 tablet (750) is portrait, and a 4:5 panel (800) or any wider one keeps the landscape layout. Without a `scale` value, the portrait layout picks the smaller glyph scale allowed by width / 270 and height / 600. A 1080x2400 panel uses scale 4 and shows about 33 characters per line; the height bound keeps tall, high-resolution tablets from rendering oversized cards and hiding entries.
+ 
+ ### [[driver]]
+ 
+diff --git a/docs/zh/reference/boot-configuration.md b/docs/zh/reference/boot-configuration.md
+index 91bbc9d..87b7e3b 100644
+--- a/docs/zh/reference/boot-configuration.md
++++ b/docs/zh/reference/boot-configuration.md
+@@ -53,7 +53,7 @@ console = "auto"
+ | `portrait_below` | 800 | `auto` 时，宽 / 高乘以 1000 低于此值则使用竖屏 |
+ | `console` | `auto` | `auto`、`graphics`、`text` 或 `none` |
+ 
+-竖屏布局是为手机等竖向屏幕设计的单列版式：标志位于顶部，菜单项是底部带编号的卡片，状态行在分隔线下自动换行。标志自带 UniXNU 字标，所以只有 `logo` 为 false 或 `title` 不是 `UniXNU` 时才绘制标题文字。`auto` 下，1080x2400 的屏幕（比值 450）和 3:4 平板（750）使用竖屏，4:5（800）及更宽的屏幕保持横屏布局。未设置 `scale` 时，竖屏布局取 宽度 / 270 作为字形缩放，1080 像素宽的屏幕每行约 33 个字符。
++竖屏布局是为手机等竖向屏幕设计的单列版式：标志位于顶部，菜单项是底部带编号的卡片，状态行在分隔线下自动换行。标志自带 UniXNU 字标，所以只有 `logo` 为 false 或 `title` 不是 `UniXNU` 时才绘制标题文字。`auto` 下，1080x2400 的屏幕（比值 450）和 3:4 平板（750）使用竖屏，4:5（800）及更宽的屏幕保持横屏布局。未设置 `scale` 时，竖屏布局同时按 宽度 / 270 与 高度 / 600 计算字形缩放并取较小值。1080x2400 屏幕使用缩放 4，每行约 33 个字符；高度限制可避免高分辨率长屏把卡片画得过大并隐藏菜单项。
+ 
+ ### [[driver]]
+ 
 diff --git a/package/UniXNUPkg/Library/UniXNULib/Boot.c b/package/UniXNUPkg/Library/UniXNULib/Boot.c
 index 4b1e737..d7ce7ad 100644
 --- a/package/UniXNUPkg/Library/UniXNULib/Boot.c
@@ -1142,6 +1133,26 @@ index e3e4619..2b8cf01 100644
  
    if (RemainingMs == 0) {
      UniXNULog ("menu: timeout 0, booting default");
+diff --git a/package/UniXNUPkg/Library/UniXNULib/Ui.c b/package/UniXNUPkg/Library/UniXNULib/Ui.c
+index 4b06ab4..1b54fb9 100644
+--- a/package/UniXNUPkg/Library/UniXNULib/Ui.c
++++ b/package/UniXNUPkg/Library/UniXNULib/Ui.c
+@@ -672,11 +672,12 @@ UniXNUUiInit (
+       Ui->Portrait = UniXNUUiChoosePortrait (Config->Layout, Config->PortraitBelow, Ui->Width, Ui->Height);
+       if (Ui->Portrait) {
+         //
+-        // The column is as wide as the short side: about 33 characters of
+-        // the normal size across a 1080 pixel panel.
++        // Keep the column readable without sizing it from width alone. High
++        // resolution portrait tablets can exceed the height that four normal
++        // size menu cards and the wrapped footer need.
+         //
+         Ui->Margin = Ui->Width / 12;
+-        Ui->Scale  = (Config->Scale > 0) ? Config->Scale : MAX (1, Ui->Width / 270);
++        Ui->Scale  = (Config->Scale > 0) ? Config->Scale : MAX (1, MIN (Ui->Width / 270, Ui->Height / 600));
+       } else {
+         Ui->Scale = (Config->Scale > 0) ? Config->Scale : MAX (1, Ui->Height / 540);
+       }
 diff --git a/package/UniXNUPkg/Library/UniXNULib/UniXNULib.inf b/package/UniXNUPkg/Library/UniXNULib/UniXNULib.inf
 index 7a395a8..26ac9ca 100644
 --- a/package/UniXNUPkg/Library/UniXNULib/UniXNULib.inf
@@ -1525,6 +1536,83 @@ index efef7a6..9ddbafe 100755
      (FAKEROOT / 'usr/include').mkdir(parents=True, exist_ok=True)
      shutil.copyfile(HERE / 'TargetConditionals.h', FAKEROOT / 'usr/include/TargetConditionals.h')
  
+diff --git a/scripts/patch-xnu-entry-probe.py b/scripts/patch-xnu-entry-probe.py
+index 9e3e598..eb0f820 100644
+--- a/scripts/patch-xnu-entry-probe.py
++++ b/scripts/patch-xnu-entry-probe.py
+@@ -47,6 +47,7 @@ VINFO_VA = 0xFFFFFFF00C0A2970      # _vinfo
+ PANIC_CAVE_END = 0xFFFFFFF00B9D0FF0
+ CAVE_SIZE = 0x60
+ CAVES = {1: 0xFFFFFFF00B9D0500, 2: 0xFFFFFFF00B9D0560, 3: 0xFFFFFFF00B9D05C0, 4: 0xFFFFFFF00B9D0620}
++ENTRY_GAP_VA = ENTRY_VA + 0x18
+ TIMEBASE = 19200000
+ 
+ PAINT = """
+@@ -288,7 +289,7 @@ def rebase(kernel, data):
+     _panic and _vinfo come from the symbol table when the kernel has one (the plain source
+     kernel does); the retained candidate layout is the unshifted case.
+     """
+-    global ENTRY_VA, START_FIRST_CPU, MMU_ENABLE_VA, AFTER_MMU_VA, PANIC_VA, VINFO_VA, PANIC_CAVE_END, CAVES
++    global ENTRY_VA, START_FIRST_CPU, MMU_ENABLE_VA, AFTER_MMU_VA, PANIC_VA, VINFO_VA, PANIC_CAVE_END, CAVES, ENTRY_GAP_VA
+     delta = unixthread_pc(data) - ENTRY_VA
+     if delta:
+         ENTRY_VA += delta
+@@ -297,6 +298,7 @@ def rebase(kernel, data):
+         AFTER_MMU_VA += delta
+         PANIC_CAVE_END += delta
+         CAVES = {stage: va + delta for stage, va in CAVES.items()}
++        ENTRY_GAP_VA += delta
+         PANIC_VA += delta
+         VINFO_VA += delta
+     names = {name: va for va, name in kernel_symbols(kernel).items()}
+@@ -377,9 +379,12 @@ def main():
+     for va, value in expected.items():
+         if word(va) != value:
+             raise SystemExit(f'{va:#x} holds {word(va):#010x}, expected {value:#010x}: not the kernel these probes are for')
++    reset_in_gap = args.panic_screen and not args.no_reset
+     for va in CAVES.values():
+         if any(data[file_offset(va):file_offset(va) + CAVE_SIZE]):
+             raise SystemExit(f'Padding at {va:#x} is not empty')
++    if reset_in_gap and any(data[file_offset(ENTRY_GAP_VA):file_offset(ENTRY_GAP_VA) + CAVE_SIZE]):
++        raise SystemExit(f'Reset-probe padding at {ENTRY_GAP_VA:#x} is not empty')
+ 
+     # (site, cave stage, symbols the cave is linked with)
+     sites = [(ENTRY_VA, 1, {'target': START_FIRST_CPU}),
+@@ -394,19 +399,29 @@ def main():
+     else:
+         sites.append((AFTER_MMU_VA, 3, {'target': AFTER_MMU_VA + 4}))
+         description = f'stage 3 reset {args.reset_delay} s after the MMU is on'
++    if reset_in_gap:
++        description += f' (reset cave at {ENTRY_GAP_VA:#x})'
++
++    def cave_for(stage):
++        # The reset cave is independent of the paint/panic caves. Keeping it
++        # in the verified padding before stage 1 leaves the original panic
++        # screen location and size unchanged on kernels with a thin tail pad.
++        return ENTRY_GAP_VA if reset_in_gap and stage in (3, 4) else CAVES[stage]
+ 
+     with tempfile.TemporaryDirectory() as tmp:
+         for site, stage, symbols in sites:
+             source = RESET_BEFORE if (stage == 4 and args.reset_before) else SOURCES[stage].format(ticks=TIMEBASE * args.reset_delay)
+-            code = assemble(source, CAVES[stage], symbols, Path(tmp))
++            cave = cave_for(stage)
++            code = assemble(source, cave, symbols, Path(tmp))
+             if len(code) > CAVE_SIZE:
+                 raise SystemExit(f'Stage {stage} code is too large')
+-            data[file_offset(CAVES[stage]):file_offset(CAVES[stage]) + len(code)] = code
++            data[file_offset(cave):file_offset(cave) + len(code)] = code
+     for site, stage, _ in sites:
+-        struct.pack_into('<I', data, file_offset(site), branch(site, CAVES[stage]))
++        struct.pack_into('<I', data, file_offset(site), branch(site, cave_for(stage)))
+     if args.panic_screen:
+-        # Right after the last probe cave in use, so the padding is shared as tightly as possible.
+-        PANIC_CAVE = max(CAVES[stage] for _, stage, _ in sites) + CAVE_SIZE
++        # Right after the last paint cave. A reset probe in the entry gap does
++        # not displace the panic screen when both diagnostics are requested.
++        PANIC_CAVE = (CAVES[2] + CAVE_SIZE) if reset_in_gap else max(CAVES[stage] for _, stage, _ in sites) + CAVE_SIZE
+         if word(PANIC_VA) in (0, 0xFFFFFFFF) or any(data[file_offset(PANIC_CAVE):file_offset(PANIC_CAVE_END)]):
+             raise SystemExit('panic() or the panic screen padding is not as expected')
+         with tempfile.TemporaryDirectory() as tmp:
 diff --git a/scripts/unixnu/devicetree.py b/scripts/unixnu/devicetree.py
 index dd4839f..9bb6f05 100644
 --- a/scripts/unixnu/devicetree.py
@@ -1567,6 +1655,3 @@ index 08f85a8..d268a65 100644
                  raise
      # Revalidate the selected source and regenerate headers on every archive build.
      # A pre-existing directory can belong to a different OS profile/revision.
--- 
-2.56.0.windows.4
-

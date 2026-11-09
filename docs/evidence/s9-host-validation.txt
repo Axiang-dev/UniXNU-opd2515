@@ -1,0 +1,46 @@
+OPD2515 S9 host validation summary
+=================================
+
+Source revision
+---------------
+UniXNU explorer branch opd2515-oppopadmini-ui
+840fbdb4f7260dedcde53a10dc5c437ef28e30b8
+based on upstream main 8ec13bb1077502e53e8ba3b82c56842589b5c837
+
+Diagnostic change
+-----------------
+- S9 enables only entry_probe_reset_delay = 6 in the host board configuration.
+- The reset cave is placed at 0xFFFFFFF0073FA4A0 when panic-screen output and the
+  reset probe are both enabled, so it does not overlap PANIC_CAVE_END.
+- The no-reset regression kernel is byte-identical to the S8 payload kernel:
+  E810A2E36F4113CABAF02028B9DD816E7D337CD538F40FC6D11DDA92C5FDBA38.
+- The S9 kernel differs from the S8 payload kernel by 64 bytes.
+- Disassembly shows the original mov x0, #0x300000 followed by a CNTPCT_EL0 wait
+  for six seconds and a PSCI SYSTEM_RESET call with function ID 0x84000009.
+
+Checks completed
+----------------
+- S9 payload readback matched the host-built kernel byte for byte.
+- unixnu.toml, ADT, v2 trust cache and DarwinBoot match the S8 payload byte for byte.
+- The Android boot header, EFI segment and payload segment passed readback.
+- No S9 image was booted on hardware. MMU completion and kernel C-path progress
+  remain unproved until a device run shows the expected six-second reset timing.
+
+Artifact hashes
+---------------
+41CDEB9ED00A10F9D79663AECD5C690DB2CAF99E021B27DE6528E66B75057573  kernel-stage3.macho (55570432 bytes)
+FADA945E507E8EEB82C2917241B3E68B7760A12B9BC1718EB9C048EF0A558CC0  opd2515-payload-stage3.img (218103808 bytes)
+FA3930AE0FDF286BD2A2082C1AF1EF9DEE3C6D4888758A4190FF30572DF3BC2A  opd2515-xnu-payload-bootramdisk-s9-stage3-fastboot.img (218210304 bytes)
+BD781B444EFBB55254622E3C47A113E2C066EC72993D5E5DF842F88A6F7CD4CF  UniXNU.efi (102400 bytes)
+952B7636124D5454BABCBAFE6000D15E29A8588C1A2DA2D444E77BBEC73E5FDF  DarwinBoot.efi (27136 bytes)
+
+Device acceptance
+-----------------
+Green, blue and magenta must still appear. A reset about six seconds after the
+magenta checkpoint proves the MMU-enable instruction executed and stage 3 was
+reached. An earlier reset does not prove stage 3; no reset after six seconds
+means CPU did not reach the configured reset checkpoint.
+
+Latest confirmed device evidence
+--------------------------------
+6112BC4C613F03CAA12EB4753E3358AB07240BB914260431CFA2C6C1AA992001  S8 pre-rebase boot image

@@ -20,6 +20,7 @@ limits = ["Only the entry-probe component set is configured. Storage, display, i
 next_action = ["Re-run this record check after every board or profile change and after any UniXNU rebase."]
 evidence = [
   { kind = "host", reference = "docs/evidence/porting-check.txt", command = "python3 ../UniXNU/scripts/porting-record.py check --device .", revision = "de8962a9bcf838bfc16b8571f43449663d094194", result = "All 13 structured areas parsed and validated." },
+  { kind = "host", reference = "docs/evidence/s9-host-validation.txt", command = "python3 scripts/verify.py", revision = "840fbdb4f7260dedcde53a10dc5c437ef28e30b8", result = "Records the S9 stage-3 artifact hashes and host readback checks." },
   { kind = "source", reference = "patches/unixnu/0001-feat-opd2515-advance-firmware-boot-to-XNU-handoff.patch", result = "Reproducible patch from upstream main 8ec13bb1077502e53e8ba3b82c56842589b5c837." },
 ]
 
@@ -33,10 +34,11 @@ configuration = ["The payload uses volume OPD2515, a 208 MiB FAT image and one D
 procedure = ["Build the OPD2515 package, verify every payload member and boot-image segment, then use fastboot boot only.", "After each run, enter OrangeFox/REC and read the authorized userdata-tail log without formatting userdata."]
 findings = ["BDS discards the Android boot-image ramdisk, so the EFI application scans the retained fastboot buffer and republishes it as a block device.", "DarwinBoot path LoadImage was denied by Security2; loading from a private memory buffer while retaining firmware Security2 validation succeeded."]
 completion = ["BDS enumerates the image, executes UniXNU, loads DarwinBoot and reaches the kernel handoff with no signature error.", "The latest source revision is retested on hardware after any rebase."]
-limits = ["S8 is device verified from the pre-rebase image. The later de8962a build is host verified only.", "No firmware partition may be modified."]
-next_action = ["Boot the rebased image once in BDS and compare its menu, handoff and color-bar behavior with S8."]
+limits = ["S8 is device verified from the pre-rebase image. The S9 stage-3 image is host verified only.", "No firmware partition may be modified."]
+next_action = ["Boot the S9 image once in BDS and record whether the green, blue and magenta checks are followed by a reset after about six seconds."]
 evidence = [
   { kind = "device", reference = "docs/evidence/s8-darwinboot-xnu-handoff.jpg", command = "fastboot boot <validated-opd2515-boot-image>", revision = "de8962a9bcf838bfc16b8571f43449663d094194", result = "DarwinBoot printed inputs validated, exited boot services and handed off to the kernel." },
+  { kind = "host", reference = "docs/evidence/s9-host-validation.txt", command = "python3 scripts/verify.py", revision = "840fbdb4f7260dedcde53a10dc5c437ef28e30b8", result = "S9 adds only the six-second MMU-post-enable reset probe and passes host readback." },
   { kind = "source", reference = "patches/unixnu/0001-feat-opd2515-advance-firmware-boot-to-XNU-handoff.patch", result = "Adds boot ramdisk recovery, persistent diagnostics and the Security2-safe DarwinBoot load path." },
 ]
 
@@ -51,10 +53,11 @@ procedure = ["Build the prelinked XNU payload and inspect it for the stage 1, st
 findings = ["The entry stub executes far enough to produce the blue and magenta checks, but this is not evidence that full CPU discovery or interrupt setup completed."]
 completion = ["Every enabled CPU reaches its entry checkpoint and timer/IPI handling is verified on hardware."]
 limits = ["No secondary-CPU or interrupt-controller result is currently proven by the XNU entry evidence."]
-next_action = ["Resolve the MMU transition first; do not add storage or display work before the kernel can progress past the probe."]
+next_action = ["Boot S9 and measure the reset delay after the green, blue and magenta checks; do not add storage or display work before the MMU transition is proved."]
 evidence = [
   { kind = "source", reference = "patches/xnu/zzz-boot-progress.patch", result = "Defines the green, blue and magenta boot progress checkpoints." },
   { kind = "device", reference = "docs/evidence/s8-post-handoff-unixnu-menu.jpg", command = "fastboot boot <validated-opd2515-boot-image>", revision = "de8962a9bcf838bfc16b8571f43449663d094194", result = "Blue and magenta bars were visible after DarwinBoot handoff." },
+  { kind = "host", reference = "docs/evidence/s9-host-validation.txt", command = "python3 scripts/verify.py", revision = "840fbdb4f7260dedcde53a10dc5c437ef28e30b8", result = "S9 contains a single six-second MMU-post-enable reset checkpoint; device timing is pending." },
 ]
 
 [[area]]
@@ -180,16 +183,17 @@ evidence = []
 id = "packaging"
 status = "host-verified"
 components = ["XnuPrelink", "DarwinBoot"]
-paths = ["package/unixnu.toml", "scripts/**", "tools/**", "patches/xnu/**", "docs/evidence/s8-host-validation.txt"]
+paths = ["package/unixnu.toml", "scripts/**", "tools/**", "patches/xnu/**", "docs/evidence/s8-host-validation.txt", "docs/evidence/s9-host-validation.txt"]
 inputs = ["Apple-derived kernel/ADT/trust cache inputs remain local.", "The build requires an iOS 16.5 profile and a platform seed supplied outside Git."]
 configuration = ["The package has one DarwinBoot driver and two menu entries: XNU and return to firmware.", "Kernel args are -v and serial=3 and the menu timeout is three seconds."]
 procedure = ["Run the porting-record checker, package preflight, full package build and payload readback.", "Inspect every artifact size and SHA-256 before any device test."]
-findings = ["The trust cache must be a DarwinBoot-compatible v2 bundle rather than the original Apple IM4P.", "The rebased build validates structurally but has not yet been booted on hardware."]
+findings = ["The trust cache must be a DarwinBoot-compatible v2 bundle rather than the original Apple IM4P.", "S9 changes only 64 kernel bytes to add the six-second MMU-post-enable reset checkpoint; all other payload members and boot-image segments match S8."]
 completion = ["Kernel and prelink succeed, payload members match their sources, boot segments match, and the resulting image passes a controlled fastboot-boot test."]
-limits = ["Reproduction of the latest package is host verified; the device milestone remains S8 from the pre-rebase image."]
-next_action = ["Publish hashes with each build and keep generated binaries out of this repository."]
+limits = ["The S9 package is host verified; the latest device milestone remains S8 from the pre-rebase image.", "Host readback does not prove that the MMU-enable instruction executes."]
+next_action = ["Publish hashes with each build, keep generated binaries out of this repository, and attach the S9 device timing before claiming MMU progress."]
 evidence = [
   { kind = "host", reference = "docs/evidence/s8-host-validation.txt", command = "python3 scripts/verify.py", revision = "de8962a9bcf838bfc16b8571f43449663d094194", result = "Records the post-rebase artifacts, sizes and SHA-256 values plus payload readback checks." },
+  { kind = "host", reference = "docs/evidence/s9-host-validation.txt", command = "python3 scripts/verify.py", revision = "840fbdb4f7260dedcde53a10dc5c437ef28e30b8", result = "Records the S9 single-variable kernel change, immutable payload members and final image hash." },
   { kind = "source", reference = "package/unixnu.toml", result = "Defines the XNU menu, DarwinBoot driver and return action." },
 ]
 
@@ -199,13 +203,14 @@ status = "device-verified"
 components = []
 paths = ["docs/evidence/**", "tools/read-log-device.sh", "tools/decode-boot-log.ps1", "README.md", "STATE.md", "PROGRESS.md"]
 inputs = ["Early framebuffer colors, UniXNU status lines and the authorized userdata-tail log provide diagnostics without a serial console."]
-configuration = ["The 4 MiB tail window contains a generated header and text; the menu displays ramdisk and log state.", "DarwinBoot and the kernel entry probe provide green, blue and magenta checkpoints."]
+configuration = ["The 4 MiB tail window contains a generated header and text; the menu displays ramdisk and log state.", "DarwinBoot and the kernel entry probe provide green, blue and magenta checkpoints.", "S9 enables only the official stage-3 reset probe with a six-second delay after the MMU-enable instruction."]
 procedure = ["Capture screen and photos, then read the exact userdata tail through REC after each failed boot.", "Record timestamp, last UNIXNU/DARWINBOOT lines and whether the screen reset, returned or stalled."]
-findings = ["S8 reached DarwinBoot handoff and the magenta entry checkpoint, then a new UniXNU menu appeared without a confirmed timing cause."]
+findings = ["S8 reached DarwinBoot handoff and the magenta entry checkpoint, then a new UniXNU menu appeared without a confirmed timing cause.", "The S9 image and its six-second reset cave pass host readback but have not run on hardware."]
 completion = ["A reproducible command, source/image revision and accessible result accompany every claimed hardware milestone."]
-limits = ["No serial console is available and the XNU path cannot use EFI services after boot-services exit."]
-next_action = ["Read the S8 tail log and user timing before adding one stage 3 checkpoint."]
+limits = ["No serial console is available and the XNU path cannot use EFI services after boot-services exit.", "A host-verified reset probe is not evidence that MMU initialization completed."]
+next_action = ["Boot S9 once, measure from the magenta check to reset, then enter REC and read the userdata-tail log without formatting it."]
 evidence = [
   { kind = "device", reference = "docs/evidence/s8-darwinboot-xnu-handoff.jpg", command = "fastboot boot <validated-opd2515-boot-image>", revision = "de8962a9bcf838bfc16b8571f43449663d094194", result = "Shows DarwinBoot validation and handoff messages." },
   { kind = "device", reference = "docs/evidence/s8-post-handoff-unixnu-menu.jpg", command = "fastboot boot <validated-opd2515-boot-image>", revision = "de8962a9bcf838bfc16b8571f43449663d094194", result = "Shows the green, blue and magenta checkpoints and the later UniXNU menu." },
+  { kind = "host", reference = "docs/evidence/s9-host-validation.txt", command = "python3 scripts/verify.py", revision = "840fbdb4f7260dedcde53a10dc5c437ef28e30b8", result = "Records the S9 reset-probe construction and host readback; device timing remains pending." },
 ]

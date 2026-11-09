@@ -77,6 +77,9 @@ title = "OPPO Pad mini - Darwin XNU"
 # 57 fixed reserved-memory nodes in the live OPD2515 FDT: no overlap.
 dram_size = "0x180000000"
 panic_screen = true
+# S9: prove whether the MMU-enable store completed. The reset cave is kept
+# independent of the panic screen so only this diagnostic changes at runtime.
+entry_probe_reset_delay = 6
 tools = true
 timeout = 3
 kernel_args = ["-v", "serial=3"]
